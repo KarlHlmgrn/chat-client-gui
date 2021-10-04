@@ -23,7 +23,8 @@ import javafx.stage.StageStyle;
 
 public class ChatClientGUI extends Application {
     private ChatClientHeadless client = new ChatClientHeadless();
-    public TextArea messages = new TextArea("\n\n\n\n\n");
+    public VBox messageRoot = new VBox();
+    public ScrollPane messagePane = new ScrollPane(messageRoot);
     public TextArea onlineUsers = new TextArea();
     private Scene scene;
     // private String storedIP;
@@ -35,9 +36,10 @@ public class ChatClientGUI extends Application {
         Text roomID = new Text("Room ID: " + client.roomID);
         Button leave = new Button("Leave room");
         TextField messageToSend = new TextField();
-        messages.setEditable(false);
         onlineUsers.setEditable(false);
-        onlineUsers.setMaxWidth(150.0);
+        onlineUsers.setMaxWidth(175.0);
+        messagePane.setMinWidth(325.0);
+        messagePane.setMaxWidth(325.0);
         messageToSend.setPromptText("Type message here");
         messageToSend.setOnKeyReleased(event -> {
             if(event.getCode() == KeyCode.ENTER) {
@@ -54,7 +56,6 @@ public class ChatClientGUI extends Application {
             try {
                 client.killReceiverThread();
                 ClientMessageSender.send("/leaveroom", client);
-                messages.setText("\n\n\n\n\n");
                 roomScene(primaryStage, "You left room " + client.roomID);
             } catch (IOException e) {
                 e.printStackTrace();
@@ -63,7 +64,7 @@ public class ChatClientGUI extends Application {
 
         HBox header = new HBox(5, roomID, leave);
         header.setAlignment(Pos.CENTER);
-        HBox middle = new HBox(1, messages, onlineUsers);
+        HBox middle = new HBox(1, messagePane, onlineUsers);
         middle.setAlignment(Pos.CENTER);
         VBox page = new VBox(5, header, middle, messageToSend);
         page.setAlignment(Pos.CENTER);
