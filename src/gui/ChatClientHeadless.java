@@ -3,13 +3,11 @@ package gui;
 import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
-import javafx.application.Application;
-import javafx.scene.text.Text;
-
 import java.lang.StringBuilder;
 
 public class ChatClientHeadless {
@@ -22,6 +20,7 @@ public class ChatClientHeadless {
     public static ArrayList<String> messageAccountNames = new ArrayList<>();
     public static ArrayList<String> messages = new ArrayList<>();
     public ArrayList<String> onlineRoomUsers = new ArrayList<>(List.of("Online:"));
+    public Map<String, String> friends = new HashMap<>();
     private ExecutorService receiverThread;
 
     public void clearScreen() throws IOException, InterruptedException {  
@@ -56,6 +55,17 @@ public class ChatClientHeadless {
         out.println(accountName);
         out.println(password);
         String response = in.readLine();
+        if(response.equals("success")) {
+            String friendsResponse = "";
+            while(true) {
+                friendsResponse = in.readLine();
+                if(!friendsResponse.equals("done")) {
+                    String friendName = friendsResponse.split("\\$")[0];
+                    String friendRoom = friendsResponse.split("\\$")[1];
+                    friends.put(friendName, friendRoom);
+                } else {break;}
+            }
+        }
         return response;
     }
 

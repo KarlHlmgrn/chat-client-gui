@@ -2,8 +2,10 @@ package gui;
 
 import java.io.*;
 import java.util.ArrayList;
-import javafx.scene.text.*;
 import javafx.scene.control.TextArea;
+import javafx.util.Duration;
+
+import org.controlsfx.control.Notifications;
 
 public class ClientMessageReceiver implements Runnable {
     private BufferedReader in;
