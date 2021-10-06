@@ -8,9 +8,14 @@ import java.util.ArrayList;
 import javax.imageio.ImageIO;
 
 import javafx.application.Platform;
+import javafx.geometry.Pos;
+import javafx.scene.control.Button;
 import javafx.scene.control.TextArea;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
@@ -35,20 +40,49 @@ public class ClientMessageReceiver implements Runnable {
     public void run() {
         while(true) {
             try {
-                BufferedImage image = null;
                 String accountName = in.readLine();
                 String message = in.readLine();
-                if(message.equals("Left the room")) {
-                    client.onlineRoomUsers.remove(accountName);
-                    clientGUI.onlineUsers.setText(String.join("\n", client.onlineRoomUsers));
-                } else if(message.equals("Just joined the chat!")) {
-                    client.onlineRoomUsers.add(accountName);
-                    clientGUI.onlineUsers.setText(String.join("\n", client.onlineRoomUsers));
-                }
+                Platform.runLater(() -> {
+                    if(message.equals("Left the room")) {
+                        int index = client.onlineUsers.indexOf(accountName);
+                        client.onlineUsers.remove(accountName);
+                        clientGUI.onlineUsersRoot.getChildren().get(index).setVisible(false);
+                    } else if(message.equals("Just joined the chat!")) {
+                        client.onlineUsers.add(accountName);
+                        Text username = new Text(accountName);
+                        username.setFont(Font.font("Segoe UI", FontWeight.BOLD, 12));
+                        HBox namesHBox = new HBox(10, username);
+                        Region region1 = new Region();
+                        HBox.setHgrow(region1, Priority.ALWAYS);
+                        if(client.friends.containsKey(accountName)) {
+                            Button btn = new Button("Friends!");
+                            btn.setDisable(true);
+                            namesHBox.getChildren().addAll(region1, btn);
+                        } else if(accountName.equals(client.accountName)) {
+                            Button btn = new Button("You");
+                            btn.setDisable(true);
+                            namesHBox.getChildren().addAll(region1, btn);
+                        } else {
+                            Button btn = new Button("Add friend");
+                            btn.setOnAction(action -> {
+                                try {
+                                    ClientMessageSender.send(("/add " + accountName), client);
+                                    btn.setText("Friends!");
+                                    btn.setDisable(true);
+                                } catch (IOException e) {
+                                    e.printStackTrace();
+                                }
+                            });
+                            namesHBox.getChildren().addAll(region1, btn);
+                        }
+                        namesHBox.setAlignment(Pos.CENTER_LEFT);
+                        clientGUI.onlineUsersRoot.getChildren().add(namesHBox);
+                    }
+                });
 
                 Platform.runLater(() -> {
                     Text accountText = new Text(accountName);
-                    accountText.setFont(Font.font("Verdana", FontWeight.BOLD, 12));
+                    accountText.setFont(Font.font("Segoe UI", FontWeight.BOLD, 12));
                     messageRoot.getChildren().add(accountText);
                     if(!message.startsWith("http")) {
                         messageRoot.getChildren().add(new Text(message + "\n"));

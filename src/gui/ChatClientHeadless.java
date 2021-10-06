@@ -8,6 +8,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import javafx.geometry.Pos;
+import javafx.scene.control.Button;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
+import javafx.scene.text.Text;
+
 import java.lang.StringBuilder;
 
 public class ChatClientHeadless {
@@ -19,7 +29,7 @@ public class ChatClientHeadless {
     public ChatClientGUI clientGUI;
     public static ArrayList<String> messageAccountNames = new ArrayList<>();
     public static ArrayList<String> messages = new ArrayList<>();
-    public ArrayList<String> onlineRoomUsers = new ArrayList<>(List.of("Online:"));
+    public ArrayList<String> onlineUsers = new ArrayList<>();
     public Map<String, String> friends = new HashMap<>();
     private ExecutorService receiverThread;
 
@@ -84,8 +94,31 @@ public class ChatClientHeadless {
             while(true) {
                 response = in.readLine();
                 if(!response.equals("done")) {
-                    onlineRoomUsers.add(response);
-                    clientGUI.onlineUsers.setText(String.join("\n", onlineRoomUsers));
+                    onlineUsers.add(response);
+                    Text username = new Text(response);
+                    username.setFont(Font.font("Segoe UI", FontWeight.BOLD, 12));
+                    HBox namesHBox = new HBox(10, username);
+                    Region region1 = new Region();
+                    HBox.setHgrow(region1, Priority.ALWAYS);
+                    if(friends.containsKey(response)) {
+                        Button btn = new Button("Friends!");
+                        btn.setDisable(true);
+                        namesHBox.getChildren().addAll(region1, btn);
+                    } else {
+                        Button btn = new Button("Add friend");
+                        btn.setOnAction(action -> {
+                            try {
+                                ClientMessageSender.send(("/add " + accountName), this);
+                                btn.setText("Friends!");
+                                btn.setDisable(true);
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        });
+                        namesHBox.getChildren().addAll(region1, btn);
+                    }
+                    namesHBox.setAlignment(Pos.CENTER_LEFT);
+                    clientGUI.onlineUsersRoot.getChildren().add(namesHBox);
                 } else {break;}
             }
             return "success";

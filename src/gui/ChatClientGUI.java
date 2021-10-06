@@ -1,6 +1,7 @@
 package gui;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Map;
 
 import javafx.application.Application;
@@ -25,7 +26,8 @@ public class ChatClientGUI extends Application {
     private ChatClientHeadless client = new ChatClientHeadless();
     public VBox messageRoot = new VBox();
     public ScrollPane messagePane = new ScrollPane(messageRoot);
-    public TextArea onlineUsers = new TextArea();
+    public VBox onlineUsersRoot = new VBox();
+    public ScrollPane onlineUsersPane = new ScrollPane(onlineUsersRoot);
     private Scene scene;
     // private String storedIP;
     // private String storedPort;
@@ -36,10 +38,10 @@ public class ChatClientGUI extends Application {
         Text roomID = new Text("Room ID: " + client.roomID);
         Button leave = new Button("Leave room");
         TextField messageToSend = new TextField();
-        onlineUsers.setEditable(false);
-        onlineUsers.setMaxWidth(175.0);
+        onlineUsersPane.setMaxWidth(175.0);
         messagePane.setMinWidth(325.0);
         messagePane.setMaxWidth(325.0);
+
         messageToSend.setPromptText("Type message here");
         messageToSend.setOnKeyReleased(event -> {
             if(event.getCode() == KeyCode.ENTER) {
@@ -64,7 +66,7 @@ public class ChatClientGUI extends Application {
 
         HBox header = new HBox(5, roomID, leave);
         header.setAlignment(Pos.CENTER);
-        HBox middle = new HBox(1, messagePane, onlineUsers);
+        HBox middle = new HBox(1, messagePane, onlineUsersPane);
         middle.setAlignment(Pos.CENTER);
         VBox page = new VBox(5, header, middle, messageToSend);
         page.setAlignment(Pos.CENTER);
