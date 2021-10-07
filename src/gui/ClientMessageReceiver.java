@@ -42,15 +42,18 @@ public class ClientMessageReceiver implements Runnable {
             try {
                 String accountName = in.readLine();
                 String message = in.readLine();
+                if(message.equals("/(leave") && accountName.equals(client.accountName)) {
+                    break;
+                }
                 Platform.runLater(() -> {
                     if(message.equals("Left the room")) {
                         int index = client.onlineUsers.indexOf(accountName);
                         client.onlineUsers.remove(accountName);
-                        clientGUI.onlineUsersRoot.getChildren().get(index).setVisible(false);
+                        clientGUI.onlineUsersRoot.getChildren().remove(index);
                     } else if(message.equals("Just joined the chat!")) {
                         client.onlineUsers.add(accountName);
                         Text username = new Text(accountName);
-                        username.setFont(Font.font("Segoe UI", FontWeight.BOLD, 12));
+                        username.setFont(Font.font("Segoe UI", FontWeight.BOLD, 15));
                         HBox namesHBox = new HBox(10, username);
                         Region region1 = new Region();
                         HBox.setHgrow(region1, Priority.ALWAYS);
@@ -78,28 +81,50 @@ public class ClientMessageReceiver implements Runnable {
                         namesHBox.setAlignment(Pos.CENTER_LEFT);
                         clientGUI.onlineUsersRoot.getChildren().add(namesHBox);
                     }
-                });
 
-                Platform.runLater(() -> {
                     Text accountText = new Text(accountName);
                     accountText.setFont(Font.font("Segoe UI", FontWeight.BOLD, 12));
-                    messageRoot.getChildren().add(accountText);
+                    if(!accountName.equals(client.accountName)) {
+                        messageRoot.getChildren().add(accountText);
+                    } else {
+                        Region region = new Region();
+                        HBox.setHgrow(region, Priority.ALWAYS);
+                        HBox tempHBox = new HBox(region, accountText);                        
+                        messageRoot.getChildren().add(tempHBox);
+                    }
                     if(!message.startsWith("http")) {
-                        messageRoot.getChildren().add(new Text(message + "\n"));
+                        if(!accountName.equals(client.accountName)) {
+                            messageRoot.getChildren().add(new Text(message + "\n"));
+                        } else {
+                            Region region = new Region();
+                            HBox.setHgrow(region, Priority.ALWAYS);
+                            HBox tempHBox = new HBox(region, new Text(message + "\n"));                            
+                            messageRoot.getChildren().add(tempHBox);
+                        }
                     } else {
                         try {
                             ImageView im = new ImageView(new Image(message));
                             im.setFitWidth(100);
                             im.setPreserveRatio(true);
-                            messageRoot.getChildren().add(im);
+                            Region region = new Region();
+                            HBox.setHgrow(region, Priority.ALWAYS);
+                            HBox tempHBox = new HBox(region, im);                        
+                            messageRoot.getChildren().add(tempHBox);
                         } catch(Exception e) {
-                            messageRoot.getChildren().add(new Text(message + "\n"));
+                            if(!accountName.equals(client.accountName)) {
+                                messageRoot.getChildren().add(new Text(message + "\n"));
+                            } else {
+                                Region region = new Region();
+                                HBox.setHgrow(region, Priority.ALWAYS);
+                                HBox tempHBox = new HBox(region, new Text(message + "\n"));                            
+                                messageRoot.getChildren().add(tempHBox);
+                            }
                         }
                     }
                     clientGUI.messagePane.layout();
                     clientGUI.messagePane.setVvalue(1.0);
-                }
-                );
+                });
+
             } catch (IOException e) {
                 try {
                     client.serverError();
