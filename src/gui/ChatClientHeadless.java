@@ -57,6 +57,9 @@ public class ChatClientHeadless {
         out.println(accountName);
         out.println(password);
         String response = in.readLine();
+        if(response.equals("success")) {
+            this.accountName = accountName;
+        }
         return response;
     }
 
@@ -66,6 +69,7 @@ public class ChatClientHeadless {
         out.println(password);
         String response = in.readLine();
         if(response.equals("success")) {
+            this.accountName = accountName;
             String friendsResponse = "";
             while(true) {
                 friendsResponse = in.readLine();
@@ -90,17 +94,16 @@ public class ChatClientHeadless {
         String response = in.readLine();
         if(response.equals("success")) {
             this.roomID = requestedRoomID;
-            response = "";
             while(true) {
-                response = in.readLine();
-                if(!response.equals("done")) {
-                    onlineUsers.add(response);
-                    Text username = new Text(response);
-                    username.setFont(Font.font("Segoe UI", FontWeight.BOLD, 12));
+                String friendResponse = in.readLine();
+                if(!friendResponse.equals("done")) {
+                    onlineUsers.add(friendResponse);
+                    Text username = new Text(friendResponse);
+                    username.setFont(Font.font("Segoe UI", FontWeight.BOLD, 15));
                     HBox namesHBox = new HBox(10, username);
                     Region region1 = new Region();
                     HBox.setHgrow(region1, Priority.ALWAYS);
-                    if(friends.containsKey(response)) {
+                    if(friends.containsKey(friendResponse)) {
                         Button btn = new Button("Friends!");
                         btn.setDisable(true);
                         namesHBox.getChildren().addAll(region1, btn);
@@ -108,7 +111,7 @@ public class ChatClientHeadless {
                         Button btn = new Button("Add friend");
                         btn.setOnAction(action -> {
                             try {
-                                ClientMessageSender.send(("/add " + accountName), this);
+                                ClientMessageSender.send(("/add " + friendResponse), this);
                                 btn.setText("Friends!");
                                 btn.setDisable(true);
                             } catch (IOException e) {
@@ -126,6 +129,18 @@ public class ChatClientHeadless {
         
     }
 
+    public void refreshFriends() throws IOException {
+        ClientMessageSender.send("refresh", this);
+        while(true) {
+            String friendsResponse = in.readLine();
+            if(!friendsResponse.equals("done")) {
+                String friendName = friendsResponse.split("\\$")[0];
+                String friendRoom = friendsResponse.split("\\$")[1];
+                friends.put(friendName, friendRoom);
+            } else {break;}
+        }
+    }
+
     public void createRecieverThread(ChatClientGUI clientGUI) {
         receiverThread = Executors.newSingleThreadExecutor();
         ClientMessageReceiver messageReceiver = new ClientMessageReceiver(in, clientGUI, this);
@@ -133,7 +148,7 @@ public class ChatClientHeadless {
     }
 
     public void killReceiverThread() {
-        receiverThread.shutdown();
+        receiverThread.shutdownNow();
     }
 
     public void updateConsole() throws IOException, InterruptedException {
