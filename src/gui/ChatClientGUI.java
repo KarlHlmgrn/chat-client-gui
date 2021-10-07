@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Map;
 
 import javafx.application.Application;
+import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.geometry.Rectangle2D;
@@ -16,6 +17,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.input.KeyCode;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.text.*;
 import javafx.stage.Modality;
 import javafx.stage.Screen;
@@ -38,9 +40,14 @@ public class ChatClientGUI extends Application {
         Text roomID = new Text("Room ID: " + client.roomID);
         Button leave = new Button("Leave room");
         TextField messageToSend = new TextField();
-        onlineUsersPane.setMaxWidth(175.0);
-        messagePane.setMinWidth(325.0);
-        messagePane.setMaxWidth(325.0);
+
+        onlineUsersPane.setPrefViewportWidth(primaryStage.getWidth()*0.3);
+        onlineUsersPane.fitToWidthProperty().set(true);
+        onlineUsersPane.setPrefViewportHeight(primaryStage.getHeight());
+
+        messagePane.setPrefViewportWidth(primaryStage.getWidth()*0.7);
+        messagePane.fitToWidthProperty().set(true);
+        messagePane.setPrefViewportHeight(primaryStage.getHeight());
 
         messageToSend.setPromptText("Type message here");
         messageToSend.setOnKeyReleased(event -> {
@@ -56,8 +63,10 @@ public class ChatClientGUI extends Application {
 
         leave.setOnAction(action -> {
             try {
-                client.killReceiverThread();
                 ClientMessageSender.send("/leaveroom", client);
+                messageRoot.getChildren().clear();
+                client.onlineUsers.clear();
+                onlineUsersRoot.getChildren().clear();
                 roomScene(primaryStage, "You left room " + client.roomID);
             } catch (IOException e) {
                 e.printStackTrace();
@@ -132,8 +141,11 @@ public class ChatClientGUI extends Application {
         Text errorText = new Text(error);
         Button createRoom = new Button("Create new room");
         TextField joinRoom = new TextField();
+        joinRoom.maxWidth(100.0);
         joinRoom.setPromptText("Room ID");
+        Button refresh = new Button("Refresh friends");
         VBox friendsList = new VBox(5);
+
         if(client.friends.size() > 0) {
             for(Map.Entry<String, String> entry : client.friends.entrySet()) {
                 Text friendName = new Text(entry.getKey());
@@ -197,17 +209,57 @@ public class ChatClientGUI extends Application {
                 }
             }
         });
+
+        refresh.setOnAction(action -> {
+            try {
+                client.refreshFriends();
+                friendsList.getChildren().clear();
+                for(Map.Entry<String, String> entry : client.friends.entrySet()) {
+                    Text friendName = new Text(entry.getKey());
+                    Button friendRoom = new Button(entry.getValue());
+                    if(entry.getValue().equals("Offline")) {
+                        friendRoom.setDisable(true);
+                    } else {
+                        friendRoom.setOnAction(event -> {
+                            try {
+                                String response = client.joinRoom(friendRoom.getText());
+                                if(response.equals("success")) {
+                                    client.createRecieverThread(this);
+                                    chatRoom(primaryStage);
+                                } else {
+                                    roomScene(primaryStage, "There was an unknown error");
+                                }
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        });
+                    }
+                    Region region1 = new Region();
+                    HBox.setHgrow(region1, Priority.ALWAYS);
+                    HBox friendTemp = new HBox(10, friendName, region1, friendRoom);
+                    friendTemp.setAlignment(Pos.CENTER_LEFT);
+                    friendsList.getChildren().add(friendTemp);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
         
         VBox room = new VBox(5, errorText, createRoom, joinRoom);
         if(client.friends.size() > 0) {
-            HBox divide = new HBox(50, friendsList, room);
+            VBox friendsVBox = new VBox(10, refresh, friendsList);
+            refresh.setAlignment(Pos.CENTER);
+            friendsVBox.setAlignment(Pos.CENTER);
+            HBox divide = new HBox(50, friendsVBox, room);
             divide.setAlignment(Pos.CENTER);
             room.setAlignment(Pos.CENTER);
             friendsList.setAlignment(Pos.CENTER);
             scene.setRoot(divide);
         } else {
+            HBox divide = new HBox(50, refresh, room);
             room.setAlignment(Pos.CENTER);
-            scene.setRoot(room);
+            refresh.setAlignment(Pos.CENTER);
+            scene.setRoot(divide);
         }
         primaryStage.setScene(scene);
     }
