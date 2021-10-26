@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import javax.imageio.ImageIO;
 
 import javafx.application.Platform;
+import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextArea;
@@ -102,21 +103,22 @@ public class ClientMessageReceiver implements Runnable {
                             messageRoot.getChildren().add(tempHBox);
                         }
                     } else {
-                        try {
-                            ImageView im = new ImageView(new Image(message));
+                        Image image = new Image(message);
+                        ImageView im = new ImageView(image);
+                        if(!image.isError()) {
                             im.setFitWidth(100);
                             im.setPreserveRatio(true);
                             Region region = new Region();
                             HBox.setHgrow(region, Priority.ALWAYS);
                             HBox tempHBox = new HBox(region, im);                        
                             messageRoot.getChildren().add(tempHBox);
-                        } catch(Exception e) {
+                        } else {
                             if(!accountName.equals(client.accountName)) {
-                                messageRoot.getChildren().add(new Text(message + "\n"));
+                                messageRoot.getChildren().add(new Text("Error getting image\n"));
                             } else {
                                 Region region = new Region();
                                 HBox.setHgrow(region, Priority.ALWAYS);
-                                HBox tempHBox = new HBox(region, new Text(message + "\n"));                            
+                                HBox tempHBox = new HBox(region, new Text("Error getting image\n"));                            
                                 messageRoot.getChildren().add(tempHBox);
                             }
                         }

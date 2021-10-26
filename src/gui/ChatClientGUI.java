@@ -1,10 +1,14 @@
 package gui;
 
+import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Map;
+import javax.imageio.ImageIO;
 
 import javafx.application.Application;
+import javafx.embed.swing.SwingFXUtils;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -12,13 +16,20 @@ import javafx.geometry.Rectangle2D;
 import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
+import javafx.scene.paint.Paint;
+import javafx.scene.shape.Circle;
+import javafx.scene.shape.Rectangle;
 import javafx.scene.control.*;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.text.*;
+import javafx.stage.FileChooser;
 import javafx.stage.Modality;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
@@ -84,6 +95,117 @@ public class ChatClientGUI extends Application {
         primaryStage.setScene(scene);
     }
 
+    public void createNewUserScene(Stage primaryStage) {
+        FileChooser imageChooser = new FileChooser();
+        FileChooser.ExtensionFilter extFilterJPG = new FileChooser.ExtensionFilter("JPG files (*.JPG)", "*.JPG");
+        FileChooser.ExtensionFilter extFilterjpg = new FileChooser.ExtensionFilter("jpg files (*.jpg)", "*.jpg");
+        FileChooser.ExtensionFilter extFilterPNG = new FileChooser.ExtensionFilter("PNG files (*.PNG)", "*.PNG");
+        FileChooser.ExtensionFilter extFilterpng = new FileChooser.ExtensionFilter("png files (*.png)", "*.png");
+        imageChooser.getExtensionFilters().addAll(extFilterJPG, extFilterjpg, extFilterPNG, extFilterpng);
+
+        Circle circle = new Circle();
+        circle.setRadius(75);
+        circle.setFill(Color.valueOf("#666666"));
+        circle.setStrokeWidth(4.0);
+        circle.setStroke(Paint.valueOf("#333333"));
+        Text plus = new Text("+");
+        plus.setFont(Font.font("Segoe UI", FontWeight.NORMAL, 20));
+        StackPane imageUpload = new StackPane(circle, plus);
+
+        Button submit = new Button("Submit");
+        VBox root = new VBox(10, imageUpload);
+        root.setAlignment(Pos.CENTER);
+
+        imageUpload.setOnMouseClicked(action -> {
+            File file = imageChooser.showOpenDialog(primaryStage);
+            try {
+                BufferedImage pic = ImageIO.read(file);
+                ImageView temp = new ImageView(SwingFXUtils.toFXImage(pic, null));
+                
+                temp.setFitHeight(400);
+                temp.setPreserveRatio(true);
+                temp.setSmooth(true);
+                temp.setCache(true);
+                BufferedImage picScaled = SwingFXUtils.fromFXImage(temp.snapshot(null, null), null);
+                BufferedImage[] picArray = {picScaled};
+                Rectangle cropViewFinder = new Rectangle(0,0);
+                cropViewFinder.setOpacity(10);
+                cropViewFinder.setFill(Color.valueOf("#037ffc"));
+                StackPane imageToCrop = new StackPane(temp, cropViewFinder);
+
+                Stage crop = new Stage();
+                Scene cropScene = new Scene(imageToCrop, picScaled.getWidth(), picScaled.getHeight());
+                System.out.println(picScaled.getWidth() + "x" + picScaled.getHeight());
+                int[] coords = new int[2];
+                // imageToCrop.setOnMouseClicked(click -> {
+                    // System.out.println("clicked");
+                    // cropViewFinder.setX(click.getX());
+                    // cropViewFinder.setY(click.getY());
+                    imageToCrop.setOnDragDetected(dragStart -> {
+                        coords[0] = (int)dragStart.getX();
+                        coords[1] = (int)dragStart.getY();
+                        System.out.println(coords[0] + "x" + coords[1] + "y");
+                        imageToCrop.startFullDrag();
+                    });
+                    imageToCrop.setOnMouseDragExited(drag -> {
+                        System.out.println("dragged");
+                        // while(drag.isPrimaryButtonDown()) {
+                        //     if(drag.getX() > drag.getY()) {
+                        //         cropViewFinder.setWidth(drag.getY());
+                        //         cropViewFinder.setHeight(drag.getY());
+                        //     } else {
+                        //         cropViewFinder.setWidth(drag.getX());
+                        //         cropViewFinder.setHeight(drag.getX());
+                        //     }
+                        // }
+                        if(drag.getX() > drag.getY()) {
+                            picArray[0] = picScaled.getSubimage(coords[0], coords[1], (int)(drag.getY() - coords[1]), (int)(drag.getY() - coords[1]));
+                        } else {
+                            picArray[0] = picScaled.getSubimage(coords[0], coords[1], (int)(drag.getX() - coords[0]), (int)(drag.getX() - coords[0]));
+                        }
+                        // crop.close();
+                        // System.out.println("closed");
+                        ImageView image = new ImageView(SwingFXUtils.toFXImage(picArray[0], null));
+                        root.getChildren().clear();
+                        image.setFitHeight(32);
+                        image.setPreserveRatio(true);
+                        image.setSmooth(true);
+                        image.setCache(true);
+                        Text previewName = new Text(client.accountName);
+                        previewName.setFont(Font.font("Segoe UI", FontWeight.BOLD, 12));
+                        VBox previewMessage = new VBox(previewName, new Text("Preview"));
+                        HBox preview = new HBox(5, image, previewMessage);
+                        
+                        preview.setAlignment(Pos.CENTER);
+                        root.getChildren().addAll(preview, submit);
+                    });
+                // });
+                crop.setScene(cropScene);
+                crop.show();
+                ImageView image = new ImageView(SwingFXUtils.toFXImage(picArray[0], null));
+                root.getChildren().clear();
+                image.setFitHeight(32);
+                image.setPreserveRatio(true);
+                image.setSmooth(true);
+                image.setCache(true);
+                Text previewName = new Text(client.accountName);
+                previewName.setFont(Font.font("Segoe UI", FontWeight.BOLD, 12));
+                VBox previewMessage = new VBox(previewName, new Text("Preview"));
+                HBox preview = new HBox(5, image, previewMessage);
+                
+                preview.setAlignment(Pos.CENTER);
+                root.getChildren().addAll(preview, submit);
+
+            } catch (IOException | IllegalArgumentException e) {
+                Boolean error = true;
+            }
+        });
+
+        scene.setRoot(root);
+        primaryStage.setScene(scene);
+
+    }
+
     public void logInScene(Stage primaryStage, String errorText) {
         Text errorText2 = new Text(errorText);
         TextField accountName = new TextField();
@@ -119,9 +241,10 @@ public class ChatClientGUI extends Application {
             try {
                 String response = client.createAccount(accountName.getText(), password.getText());
                 if(response.equals("success")) {
+                    createNewUserScene(primaryStage);
                     // storedAccountName = accountName.getText();
                     // storedPassword = password.getText();
-                    roomScene(primaryStage, "");
+                    // roomScene(primaryStage, "");
                 } else {
                     logInScene(primaryStage, response);
                 }
@@ -240,27 +363,31 @@ public class ChatClientGUI extends Application {
                     friendTemp.setAlignment(Pos.CENTER_LEFT);
                     friendsList.getChildren().add(friendTemp);
                 }
+                if(client.friends.size() > 0) {
+                    VBox room = new VBox(5, errorText, createRoom, joinRoom);
+                    VBox friendsVBox = new VBox(10, refresh, friendsList);
+                    refresh.setAlignment(Pos.CENTER);
+                    friendsVBox.setAlignment(Pos.CENTER);
+                    HBox divide = new HBox(50, friendsVBox, room);
+                    divide.setAlignment(Pos.CENTER);
+                    room.setAlignment(Pos.CENTER);
+                    friendsList.setAlignment(Pos.CENTER);
+                    scene.setRoot(divide);
+                }
             } catch (IOException e) {
                 e.printStackTrace();
             }
         });
         
         VBox room = new VBox(5, errorText, createRoom, joinRoom);
-        if(client.friends.size() > 0) {
-            VBox friendsVBox = new VBox(10, refresh, friendsList);
-            refresh.setAlignment(Pos.CENTER);
-            friendsVBox.setAlignment(Pos.CENTER);
-            HBox divide = new HBox(50, friendsVBox, room);
-            divide.setAlignment(Pos.CENTER);
-            room.setAlignment(Pos.CENTER);
-            friendsList.setAlignment(Pos.CENTER);
-            scene.setRoot(divide);
-        } else {
-            HBox divide = new HBox(50, refresh, room);
-            room.setAlignment(Pos.CENTER);
-            refresh.setAlignment(Pos.CENTER);
-            scene.setRoot(divide);
-        }
+        VBox friendsVBox = new VBox(10, refresh, friendsList);
+        refresh.setAlignment(Pos.CENTER);
+        friendsVBox.setAlignment(Pos.CENTER);
+        HBox divide = new HBox(50, friendsVBox, room);
+        divide.setAlignment(Pos.CENTER);
+        room.setAlignment(Pos.CENTER);
+        friendsList.setAlignment(Pos.CENTER);
+        scene.setRoot(divide);
         primaryStage.setScene(scene);
     }
 
